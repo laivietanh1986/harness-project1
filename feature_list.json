@@ -1,0 +1,34 @@
+[
+  {
+    "id": "F01",
+    "behavior": "App start, GET /actuator/health return 200",
+    "verification": "curl -sf http://localhost:8080/actuator/health | grep UP",
+    "state": "done",
+    "evidence": "init.sh output: {\"status\":\"UP\"}",
+    "testedAt": "2026-08-13"
+  },
+  {
+    "id": "F02",
+    "behavior": "GET /api/tasks return JSON list return",
+    "verification": "curl -sf http://localhost:8080/api/tasks | jq 'type == \"array\"'",
+    "state": "done",
+    "evidence": "GET /api/tasks returned [{\"id\":1,\"title\":\"init-check\"}]",
+    "testedAt": "2026-08-13"
+  },
+  {
+    "id": "F03",
+    "behavior": "POST /api/tasks create new task, return 201",
+    "verification": "curl -i -X POST http://localhost:8080/api/tasks -d '{\"title\":\"x\"}' | grep '201'",
+    "state": "done",
+    "evidence": "POST /api/tasks with {\"title\":\"init-check\"} returned 201 with body {\"id\":1,\"title\":\"init-check\"}",
+    "testedAt": "2026-08-13"
+  },
+  {
+    "id": "F04",
+    "behavior": "Data persist across restarts (H2 file mode)",
+    "verification": "restart app, GET /api/tasks still contains the task created previously",
+    "state": "done",
+    "evidence": "Restarted app after init.sh run; GET /api/tasks still returned [{\"id\":1,\"title\":\"init-check\"}]. DB file at ./data/tasks.mv.db",
+    "testedAt": "2026-08-13"
+  }
+]
