@@ -46,5 +46,21 @@
     "state": "done",
     "evidence": "GET /api/tasks/1 returned 200 {\"id\":1,\"title\":\"single\"}; GET /api/tasks/9999 returned 404",
     "testedAt": "2026-08-19"
+  },
+  {
+    "id": "F07",
+    "behavior": "Every request produces one structured JSON log line with a requestId correlation id, echoed back as the X-Request-Id response header",
+    "verification": "curl -i http://localhost:8080/api/tasks -H 'X-Request-Id: test-corr-id'; confirm response header X-Request-Id: test-corr-id and a JSON log line containing \"requestId\":\"test-corr-id\", \"status\":200",
+    "state": "done",
+    "evidence": "curl -i /api/tasks -H 'X-Request-Id: test-corr-id' returned header X-Request-Id: test-corr-id and log line {\"...\",\"message\":\"method=GET path=/api/tasks status=200 durationMs=120\",\"logger\":\"com.example.taskapi.config.RequestLoggingFilter\",\"level\":\"INFO\",\"requestId\":\"test-corr-id\"}; request without header got an auto-generated UUID echoed back and logged; GET /api/tasks/999999 (404) logged at WARN with its own requestId. Full ./init.sh run passed with all log lines in JSON.",
+    "testedAt": "2026-08-19"
+  },
+  {
+    "id": "F08",
+    "behavior": "Every TaskService method (listTasks, getTask, createTask, importTasks) logs one structured JSON line per outcome: INFO on success with identifying context (task id/count), WARN for not-found/invalid-input with the offending input and reason, ERROR for unexpected exceptions with the exception and enough context to diagnose without full task titles/bodies. All lines correlate with the request's requestId via MDC.",
+    "verification": "Exercise each method's success and failure paths (GET /api/tasks; GET /api/tasks/{id} valid id and missing id; POST /api/tasks valid and blank title; POST /api/tasks/import valid array, empty array, array with an invalid element) and confirm one business-level JSON log line per case, correct level (INFO/WARN/ERROR), matching requestId to the access-log line, and enough context (task id / offending input / exception) to diagnose without re-running the request",
+    "state": "todo",
+    "evidence": "",
+    "testedAt": ""
   }
 ]
