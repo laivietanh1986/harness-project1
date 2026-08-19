@@ -6,6 +6,7 @@ import com.example.taskapi.service.TaskService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -27,9 +28,20 @@ public class TaskController {
         return taskService.listTasks();
     }
 
+    @GetMapping("/api/tasks/{id}")
+    public TaskResponse getTask(@PathVariable Long id) {
+        return taskService.getTask(id);
+    }
+
     @PostMapping("/api/tasks")
     @ResponseStatus(HttpStatus.CREATED)
     public TaskResponse createTask(@Valid @RequestBody CreateTaskRequest request) {
         return taskService.createTask(request);
+    }
+
+    @PostMapping("/api/tasks/import")
+    @ResponseStatus(HttpStatus.CREATED)
+    public List<TaskResponse> importTasks(@RequestBody List<CreateTaskRequest> requests) {
+        return taskService.importTasks(requests);
     }
 }
