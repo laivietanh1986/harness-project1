@@ -1,9 +1,9 @@
 # Progress Log
 
 ## Current State
-- Latest commit: a520a77 (add readme)
-- Test status: init.sh passes; F01-F07 manually verified including restart-persistence
-  and structured logging correlation
+- Latest commit: acf40c3 (structured logging with request correlation ID)
+- Test status: init.sh passes; F01-F08 manually verified including restart-persistence,
+  structured logging correlation, and per-method business-logic logging
 
 ## Completed
 - Project skeleton: Maven (mvnw/mvnw.cmd generated), Spring Boot 3.3.4, Java 21
@@ -32,12 +32,25 @@
   header absent; verified 404 logs at WARN.
 - Ran ./init.sh end-to-end: build, health check, POST, GET all passed, all app
   log output confirmed as valid JSON lines
+- F08: business-logic logging in TaskService — listTasks, createTask, getTask,
+  importTasks each log exactly one line per outcome (INFO on success with
+  id/count only, WARN on not-found/invalid-input with the offending id/index
+  and reason, ERROR wrapping unexpected RuntimeExceptions with the exception
+  object so stack_trace populates). No requestId is passed manually — MDC
+  correlation from RequestLoggingFilter carries through automatically.
+  importTasks validates title-blank per element itself (not via cascaded
+  @Valid) so its WARN case lives in the service; createTask's blank-title
+  case is rejected by @Valid before TaskService runs, so there is
+  intentionally no service-level line for it (the access log still logs
+  that 400 at WARN). Verified all success/WARN paths by hitting each
+  endpoint with distinct X-Request-Id headers and confirming matching
+  requestId between the TaskService log line and the access-log line.
 
 ## In Progress
 (empty)
 
 ## Next Steps
-- All 6 product features (F01-F06) plus F07 (structured logging) implemented
-  and verified.
+- All 6 product features (F01-F06) plus F07 (structured logging) and F08
+  (business-logic logging) implemented and verified.
 - Changes not yet committed to git — ask user before committing/pushing.
-- No further scope planned beyond F01-F07.
+- No further scope planned beyond F01-F08.
