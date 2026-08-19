@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 set -e
+echo "== Architecture check =="
+./check_architecture.sh
 echo "== Build =="
 ./mvnw clean install -q
 echo "== Start & health check =="
