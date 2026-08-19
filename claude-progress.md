@@ -79,6 +79,25 @@
   and sorting endpoint...") did not actually implement anything — their diffs
   only added evaluator-rubric.md and src/promts.md respectively. The real
   implementation happened in this session.
+- Self-review against evaluator-rubric.md (2026-08-19): re-verified functional
+  correctness exhaustively (status-alone filter, both directions of all 3 sort
+  fields, page depth beyond page=0, combined filter+sort+page in one request,
+  negative page/size validation) beyond the earlier pass. Found and fixed a real
+  defect in the process: invalid sortBy/sortDir returned 400 with no message in
+  the response body at all (server.error.include-message defaults to "never" in
+  Spring Boot, so the ResponseStatusException reason only reached the server
+  log, never the client) — this failed the spec's explicit "trả 400 kèm message
+  rõ ràng" requirement. Fixed by adding server.error.include-message=always to
+  application.properties; reverified all 400/404 bodies afterward (including
+  F06's existing 404 and the @Valid blank-title case) to confirm no regression.
+  Filled in evaluator-rubric.md honestly: 4.0/5 average (functional
+  correctness/edge cases/architecture = 5 each, test coverage = 1 since no
+  automated tests exist anywhere in this project — only manual curl+log
+  verification, code quality = 4 — TaskService.listTasks() does validation +
+  query building + logging in one ~40-line method; not duplicated/buggy but
+  could be more decomposed, left as-is because splitting a private helper out of
+  TaskService trips check_architecture.py's "every service method must log"
+  rule, as already seen with the toResponse mapper).
 
 ## In Progress
 (empty)
