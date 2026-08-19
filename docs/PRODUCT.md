@@ -23,3 +23,13 @@ Không refactor, không tối ưu, không thêm tính năng ngoài 6 mục trên
 ## F06. Get task detail
 - `GET /api/tasks/{id}` trả về chi tiết đầy đủ của 1 task theo id.
 - Response: 200 + TaskResponse DTO nếu tồn tại; 404 nếu không tìm thấy id.
+## F07. Task Filtering & Sorting API
+GET /api/tasks?category=&status=&sortBy=&sortDir=&page=&size=
+
+- category, status: lọc kết hợp được (AND), optional
+- sortBy: title|createdAt|category, mặc định createdAt
+- sortDir: asc|desc, mặc định desc
+- page, size: phân trang, mặc định page=0 size=20
+- Tham số không hợp lệ (sortBy sai tên cột) -> trả 400 kèm message rõ ràng, KHÔNG crash
+- Kết hợp filter cho ra 0 kết quả -> trả mảng rỗng, không lỗi
+- Response phải kèm metadata phân trang: {content, totalElements, totalPages, page, size}

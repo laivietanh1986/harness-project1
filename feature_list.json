@@ -9,11 +9,11 @@
   },
   {
     "id": "F02",
-    "behavior": "GET /api/tasks return JSON list return",
-    "verification": "curl -sf http://localhost:8080/api/tasks | jq 'type == \"array\"'",
+    "behavior": "GET /api/tasks return JSON list of tasks. Superseded by F11: now returns a paginated envelope {content, totalElements, totalPages, page, size} instead of a bare array, since filtering/sorting/pagination was added to this same endpoint.",
+    "verification": "curl -sf http://localhost:8080/api/tasks | jq '.content | type == \"array\"'",
     "state": "done",
-    "evidence": "GET /api/tasks returned [{\"id\":1,\"title\":\"init-check\"}]",
-    "testedAt": "2026-08-13"
+    "evidence": "GET /api/tasks returns {\"content\":[{\"id\":1,\"title\":\"init-check\",...}],\"totalElements\":1,\"totalPages\":1,\"page\":0,\"size\":20}. Response contract changed by F11 (see F11 evidence); old bare-array contract no longer applies.",
+    "testedAt": "2026-08-19"
   },
   {
     "id": "F03",
@@ -61,6 +61,14 @@
     "verification": "Exercise each method's success and failure paths (GET /api/tasks; GET /api/tasks/{id} valid id and missing id; POST /api/tasks valid and blank title; POST /api/tasks/import valid array, empty array, array with an invalid element) and confirm one business-level JSON log line per case, correct level (INFO/WARN/ERROR), matching requestId to the access-log line, and enough context (task id / offending input / exception) to diagnose without re-running the request",
     "state": "done",
     "evidence": "Exercised each TaskService method's success/failure paths with distinct X-Request-Id headers: listTasks -> \"listTasks success count=0\" (INFO); createTask -> \"createTask success id=33\" (INFO), and the @Valid blank-title 400 case produced no service-level line (validation happens before TaskService, matching the access-log WARN); getTask -> \"getTask not found id=999999\" (WARN) and \"getTask success id=33\" (INFO); importTasks -> \"importTasks success count=2\" (INFO), \"importTasks success count=0\" for [] (INFO), \"importTasks invalid element index=1 reason=blank_title\" (WARN). Every line's requestId matched the corresponding RequestLoggingFilter access-log line. Also verified via full ./init.sh run.",
+    "testedAt": "2026-08-19"
+  },
+  {
+    "id": "F11",
+    "behavior": "GET /api/tasks?category=&status=&sortBy=&sortDir=&page=&size= filters (category, status combined with AND, both optional), sorts (sortBy: title|createdAt|category, default createdAt; sortDir: asc|desc, default desc), and paginates (page default 0, size default 20) tasks. Invalid sortBy/sortDir -> 400 with a clear message, no crash. Filter combination yielding 0 results -> 200 with empty content array. Response includes pagination metadata {content, totalElements, totalPages, page, size}.",
+    "verification": "Create tasks with varying category/status via POST /api/tasks and /api/tasks/import; exercise GET /api/tasks with: no params (defaults), category only, status only, category+status combined, each sortBy value asc/desc, page/size, an invalid sortBy, an invalid sortDir, and a filter combo yielding 0 results. Confirm response shape, ordering, pagination fields, 400 on invalid sortBy/sortDir, and empty content array (not an error) on 0 results.",
+    "state": "done",
+    "evidence": "Created tasks with category/status combos (work/open, work/done, home/open). GET /api/tasks (no params) -> paginated envelope, defaults sortBy=createdAt sortDir=desc page=0 size=20. ?category=work -> 2 matching tasks; ?category=work&status=open -> AND-combined to 1 task; ?category=nope -> 200 {\"content\":[],\"totalElements\":0,\"totalPages\":0,...} (no error). ?sortBy=title&sortDir=asc -> correctly title-sorted ascending. ?sortBy=bogus -> 400; ?sortDir=bogus -> 400 (both logged as WARN in TaskService with the offending value, correlated via requestId). ?page=0&size=2 -> 2 items, totalPages=4, totalElements=7. Verified GET /api/tasks/{id}, POST /api/tasks, POST /api/tasks/import still work with new category/status fields. Restarted app: filtered/persisted tasks (id 97 category=work) still returned correctly by both GET /api/tasks/97 and ?category=work after restart. ./check_architecture.sh passes (0 violations). Note: ./init.sh's hardcoded `sleep 15` before the health check is flaky on this machine independent of this change -- reproduced the same timeout on unmodified HEAD via git stash before/after this work, so it is a pre-existing environment timing issue, not a regression; build, health check, and all feature checks pass when run manually with a longer startup wait (~18-20s).",
     "testedAt": "2026-08-19"
   }
 ]

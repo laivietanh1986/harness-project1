@@ -1,6 +1,7 @@
 package com.example.taskapi.controller;
 
 import com.example.taskapi.dto.CreateTaskRequest;
+import com.example.taskapi.dto.PagedTaskResponse;
 import com.example.taskapi.dto.TaskResponse;
 import com.example.taskapi.service.TaskService;
 import jakarta.validation.Valid;
@@ -9,6 +10,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -24,8 +26,14 @@ public class TaskController {
     }
 
     @GetMapping("/api/tasks")
-    public List<TaskResponse> listTasks() {
-        return taskService.listTasks();
+    public PagedTaskResponse listTasks(
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return taskService.listTasks(category, status, sortBy, sortDir, page, size);
     }
 
     @GetMapping("/api/tasks/{id}")

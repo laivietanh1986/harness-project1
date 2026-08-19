@@ -1,9 +1,16 @@
 # Progress Log
 
 ## Current State
-- Latest commit: acf40c3 (structured logging with request correlation ID)
-- Test status: init.sh passes; F01-F08 manually verified including restart-persistence,
-  structured logging correlation, and per-method business-logic logging
+- Latest commit: a091dd3 (note: that commit's message claims the F11 endpoint was
+  added but its diff only touched src/promts.md — no code was actually implemented
+  by it; this session did the real implementation, see F11 below)
+- Test status: check_architecture.sh passes; F01-F08, F11 manually verified including
+  restart-persistence, structured logging correlation, per-method business-logic
+  logging, and filtering/sorting/pagination. init.sh's hardcoded `sleep 15` before
+  the health check is flaky on this dev machine (app needs ~18-20s to fully start)
+  — reproduced on unmodified HEAD via git stash, so it's a pre-existing environment
+  timing issue, not a regression from this session's changes. All init.sh checks
+  pass when run manually with a longer startup wait.
 
 ## Completed
 - Project skeleton: Maven (mvnw/mvnw.cmd generated), Spring Boot 3.3.4, Java 21
@@ -46,11 +53,39 @@
   endpoint with distinct X-Request-Id headers and confirming matching
   requestId between the TaskService log line and the access-log line.
 
+- F11: Task filtering & sorting API (docs/PRODUCT.md "Task Filtering & Sorting
+  API" section). GET /api/tasks now accepts category, status (optional, AND-
+  combined), sortBy (title|createdAt|category, default createdAt), sortDir
+  (asc|desc, default desc), page (default 0), size (default 20). Added
+  category/status/createdAt to the Task entity (@PrePersist sets createdAt) and
+  to CreateTaskRequest/TaskResponse. Filtering/sorting implemented via
+  TaskRepository extends JpaSpecificationExecutor<Task> + a TaskSpecifications
+  helper (repository package) combined with Spring Data Sort/PageRequest in
+  TaskService.listTasks. Invalid sortBy/sortDir -> 400 via ResponseStatusException
+  (logged WARN with the offending value); 0-result filter combos return 200 with
+  an empty content array. Response is now PagedTaskResponse
+  {content, totalElements, totalPages, page, size} — a static
+  TaskResponse.from(Task) factory replaced the old inline mapping (kept a private
+  mapper out of TaskService so check_architecture.py's "every service method
+  logs" rule doesn't misfire on a pure data mapper).
+  IMPORTANT CONTRACT CHANGE: this reuses the same GET /api/tasks endpoint as F02,
+  so F02's original "returns a bare JSON array" contract is superseded — it now
+  always returns the paginated envelope, even with no query params. User
+  confirmed this tradeoff explicitly (asked via AskUserQuestion) rather than
+  keeping F02 unchanged behind a separate path. feature_list.json F02 entry
+  updated to reflect the new contract.
+  Also found (and left as informational, not fixed): the two commits immediately
+  before this session ("add evaluator rubric for F11..." and "add task filtering
+  and sorting endpoint...") did not actually implement anything — their diffs
+  only added evaluator-rubric.md and src/promts.md respectively. The real
+  implementation happened in this session.
+
 ## In Progress
 (empty)
 
 ## Next Steps
-- All 6 product features (F01-F06) plus F07 (structured logging) and F08
-  (business-logic logging) implemented and verified.
+- All 6 product features (F01-F06) plus F07 (structured logging), F08
+  (business-logic logging), and F11 (filtering/sorting/pagination) implemented
+  and verified.
 - Changes not yet committed to git — ask user before committing/pushing.
-- No further scope planned beyond F01-F08.
+- No further scope planned beyond F01-F08, F11.
